@@ -1,6 +1,9 @@
-CollisionShape3D
-MeshInstance3D
+Node3D
 StaticBody3D
+MeshInstance3D
+CollisionShape3D
+Label3D
+Label
 Camera3D
 CharacterBody3D
 CollisionPolygon3D

@@ -14,9 +14,10 @@ mesh = SubResource("CapsuleMesh_sh265")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=279656731]
 shape = SubResource("CapsuleShape3D_onrkg")
 
-[node name="Head" type="MeshInstance3D" parent="." unique_id=1897533834]
-transform = Transform3D(0.83992314, 0, 0, 0, 0.26942652, 0, 0, 0, 0.4078743, -0.00071415305, 0.49931133, -0.3689065)
+[node name="Head" type="MeshInstance3D" parent="." unique_id=795101944]
+
+[node name="Eyes" type="MeshInstance3D" parent="Head" unique_id=1897533834]
+transform = Transform3D(0.84, 0, 0, 0, 0.269, 0, 0, 0, 0.328, 0, 0.4639688, -0.5684351)
 mesh = SubResource("BoxMesh_4flbx")
 
-[node name="Camera3D" type="Camera3D" parent="Head" unique_id=336618494]
-transform = Transform3D(1.4072665, 0, 0, 0, 3.711587, 0, 0, 0, 3.7129097, 0, 0, 0)
+[node name="Camera3D" type="Camera3D" parent="Head/Eyes" unique_id=336618494]

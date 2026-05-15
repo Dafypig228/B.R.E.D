@@ -1,7 +1,16 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1778752899
+::res://::1778845640
 icon.svg::CompressedTexture2D::5325930244108992709::1778751881::1778751894::1::::<><><>0<>0<>3ba546d9d2655f97a0cb95f0fd05fa0f<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
-node_3d.tscn::PackedScene::8046852128666426104::1778752892::0::1::::<><><>0<>0<><>::
-::res://Jenova/::1778752894
+labelLootAtPlayer.cpp::CPPScript::4818220120923579082::1778834859::0::1:::: Jenova C++ Script<>CPPScript<><>0<>0<><>::
+node_3d.tscn::PackedScene::8046852128666426104::1778845532::0::1::::<><><>0<>0<><>::uid://cav8m77fem0t7::::res://labelLootAtPlayer.cpp<>uid://b4tjjjslr1imc::::res://player.tscn<>uid://ctb8vlk67cied::::res://player.cpp<>uid://1ho12lp3onla::::res://text_block_grid.tscn
+player.cpp::CPPScript::6110535531352417947::1778844267::0::1:::: Jenova C++ Script<>CPPScript<><>0<>0<><>::
+player.tscn::PackedScene::4461683352643387898::1778839158::0::1::::<><><>0<>0<><>::
+README.md::TextFile::-1::1778779021::0::1::::<><><>0<>0<><>::
+TextBlockGrid.cpp::CPPScript::446731452415489408::1778845532::0::1::::TextBlockGrid<>CPPScript<><>0<>0<><>::
+TextRenderManager.cpp::CPPScript::8020319220051111802::1778845600::0::1::::TextRenderManager<>CPPScript<><>0<>0<><>::
+text_billboard.gdshader::Shader::4702771332516587358::1778843632::0::1::::<><><>0<>0<><>::
+text_block_grid.tscn::PackedScene::1840258483250335098::1778845211::0::1::::<><><>0<>0<><>::uid://gmnupvkg0n6g::::res://TextBlockGrid.cpp
+text_render_manager.tscn::PackedScene::1802030709548408421::1778842489::0::1::::<><><>0<>0<><>::uid://dmjdqrs0gttaw::::res://TextRenderManager.cpp
+::res://Jenova/::1778845634
 Jenova.Runtime.gdextension::GDExtension::1261875613750530356::1766641462::0::1::::<><><>0<>0<><>::
-Jenova.Runtime.Packages.json::JSON::-1::1778752875::0::1::::<><><>0<>0<><>::
+Jenova.Runtime.Packages.json::JSON::-1::1778755609::0::1::::<><><>0<>0<><>::

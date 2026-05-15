@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://0w6gg8hyilgn"]
+
+[ext_resource type="Script" uid="uid://dmjdqrs0gttaw" path="res://TextRenderManager.cpp" id="1_4adg1"]
+
+[node name="TextRenderManager" type="Node3D" unique_id=71415268]
+script = ExtResource("1_4adg1")
+tile_size = 2.0
+font_size = 64
+texture_resolution = 256

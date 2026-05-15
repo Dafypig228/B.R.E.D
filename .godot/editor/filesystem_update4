@@ -1,4 +1,4 @@
+res://TextRenderManager.cpp
+res://TextBlockGrid.cpp
 res://node_3d.tscn
-res://new_script.cpp
-res://player.cpp
-res://player.tscn
+res://text_block_grid.tscn

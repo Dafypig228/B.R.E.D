@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://1ho12lp3onla"]
+
+[ext_resource type="Script" uid="uid://gmnupvkg0n6g" path="res://TextBlockGrid.cpp" id="1_0sayu"]
+
+[node name="TextBlockGrid" type="StaticBody3D" unique_id=25734403]
+script = ExtResource("1_0sayu")
+Content/block_text = "Earth"
+Layout/grid_x = 3
+Layout/grid_y = 3
+Layout/tile_size = 2.0
+Style/font_size = 64
+Style/font_color = Color(1, 1, 1, 1)
+Style/outline_color = Color(0, 0, 0, 1)
+Style/outline_size = 8
