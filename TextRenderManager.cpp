@@ -17,31 +17,40 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <string>
 
 #define PI_GODOT 3.14159265358979323846
 
 using namespace godot;
 using namespace jenova::sdk;
 
-struct TextGroup {
+// 1. Хранит только текстуру и материал (1 на уникальный дизайн стены)
+struct TextStyle {
 	SubViewport* viewport;
 	Ref<StandardMaterial3D> material;
-	Ref<MultiMesh> multimesh;
+	Ref<QuadMesh> quad;
+};
+
+// 2. Хранит массив инстансов для конкретного 3D-сектора (Чанка)
+struct TextChunk {
 	MultiMeshInstance3D* mmi;
+	Ref<MultiMesh> multimesh;
 	std::vector<Transform3D> instances;
 };
 
-std::unordered_map<std::string, TextGroup> groups;
+std::unordered_map<std::string, TextStyle> styles;
+std::unordered_map<std::string, TextChunk> chunks;
 bool collected = false;
 
 JENOVA_CLASS_NAME("text_render_manager")
 JENOVA_SCRIPT_BEGIN
 
-TextGroup& get_or_create_group(Node3D* manager_node, Node* wall_node, const std::string& key) {
-	auto it = groups.find(key);
-	if (it != groups.end()) return it->second;
+JENOVA_PROPERTY(double, chunk_size, 32.0) // Размер сектора в метрах!
 
-	// 1. Читаем параметры из узла стены
+TextStyle& get_or_create_style(Node3D* manager_node, Node* wall_node, const std::string& key) {
+	auto it = styles.find(key);
+	if (it != styles.end()) return it->second;
+
 	String text = wall_node->get_meta("block_text");
 	bool uppercase = wall_node->get_meta("uppercase");
 	String font_path = wall_node->get_meta("font_path");
@@ -51,7 +60,6 @@ TextGroup& get_or_create_group(Node3D* manager_node, Node* wall_node, const std:
 	int align_h = wall_node->get_meta("align_h");
 	int align_v = wall_node->get_meta("align_v");
 	bool autowrap = wall_node->get_meta("autowrap");
-	
 	int outline_size = wall_node->get_meta("outline_size");
 	Color outline_color = wall_node->get_meta("outline_color");
 	bool enable_shadow = wall_node->get_meta("enable_shadow");
@@ -59,35 +67,30 @@ TextGroup& get_or_create_group(Node3D* manager_node, Node* wall_node, const std:
 	int shadow_x = wall_node->get_meta("shadow_x");
 	int shadow_y = wall_node->get_meta("shadow_y");
 	int shadow_blur = wall_node->get_meta("shadow_blur");
-	
 	int fw = wall_node->get_meta("frame_width");
 	int fh = wall_node->get_meta("frame_height");
 	double t_scale = wall_node->get_meta("text_scale");
 	bool is_billboard = wall_node->get_meta("is_billboard");
 
-	// Защита от крашей
 	if (fw <= 0) fw = 256;
 	if (fh <= 0) fh = 256;
 	if (t_scale <= 0.01) t_scale = 1.0;
 
-	// === МАГИЯ ФРЕЙМОВ ===
-	// Физический размер 3D тайла рассчитывается напрямую из пропорций фрейма!
 	double quad_h = t_scale;
 	double quad_w = t_scale * ((double)fw / (double)fh);
 
-	TextGroup g;
+	TextStyle s;
 
-	// === ФИГМА: НАСТРОЙКА ХОЛСТА (FRAME) ===
-	g.viewport = memnew(SubViewport);
-	g.viewport->set_size(Vector2i(fw, fh));
-	g.viewport->set_transparent_background(true);
-	g.viewport->set_update_mode(SubViewport::UPDATE_ALWAYS);
-	manager_node->add_child(g.viewport);
+	// СБОРКА ТЕКСТУРЫ
+	s.viewport = memnew(SubViewport);
+	s.viewport->set_size(Vector2i(fw, fh));
+	s.viewport->set_transparent_background(true);
+	s.viewport->set_update_mode(SubViewport::UPDATE_ALWAYS);
+	manager_node->add_child(s.viewport);
 
 	Label* lbl = memnew(Label);
 	lbl->set_text(text);
 	lbl->set_uppercase(uppercase);
-	
 	lbl->call("set_autowrap_mode", autowrap ? 3 : 0); 
 
 	if (align_h == 0) lbl->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_LEFT);
@@ -101,11 +104,9 @@ TextGroup& get_or_create_group(Node3D* manager_node, Node* wall_node, const std:
 	
 	lbl->set_anchors_preset(Control::PRESET_FULL_RECT);
 
-	// === ФИГМА: ТИПОГРАФИКА ===
 	lbl->add_theme_font_size_override("font_size", font_size);
 	lbl->add_theme_color_override("font_color", font_color);
 	lbl->add_theme_constant_override("line_spacing", line_spacing);
-
 	lbl->add_theme_color_override("font_outline_color", outline_color);
 	lbl->add_theme_constant_override("outline_size", outline_size);
 
@@ -113,7 +114,7 @@ TextGroup& get_or_create_group(Node3D* manager_node, Node* wall_node, const std:
 		lbl->add_theme_color_override("font_shadow_color", shadow_color);
 		lbl->add_theme_constant_override("shadow_offset_x", shadow_x);
 		lbl->add_theme_constant_override("shadow_offset_y", shadow_y);
-		lbl->add_theme_constant_override("shadow_outline_size", shadow_blur); // Мягкая тень!
+		lbl->add_theme_constant_override("shadow_outline_size", shadow_blur);
 	}
 
 	if (!font_path.is_empty()) {
@@ -121,41 +122,49 @@ TextGroup& get_or_create_group(Node3D* manager_node, Node* wall_node, const std:
 		if (custom_font.is_valid()) lbl->add_theme_font_override("font", custom_font);
 	}
 	
-	g.viewport->add_child(lbl);
+	s.viewport->add_child(lbl);
 
-	// === 3D МАТЕРИАЛ ===
-	g.material.instantiate();
-	g.material->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, g.viewport->get_texture());
-	g.material->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
-	g.material->set_cull_mode(BaseMaterial3D::CULL_DISABLED);
-	g.material->set_shading_mode(BaseMaterial3D::SHADING_MODE_UNSHADED);
+	// СБОРКА МАТЕРИАЛА И MESH
+	s.material.instantiate();
+	s.material->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, s.viewport->get_texture());
+	s.material->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
+	s.material->set_cull_mode(BaseMaterial3D::CULL_DISABLED);
+	s.material->set_shading_mode(BaseMaterial3D::SHADING_MODE_UNSHADED);
+	s.material->set_billboard_mode(is_billboard ? BaseMaterial3D::BILLBOARD_ENABLED : BaseMaterial3D::BILLBOARD_DISABLED);
 
-	if (is_billboard) {
-		g.material->set_billboard_mode(BaseMaterial3D::BILLBOARD_ENABLED);
-	} else {
-		g.material->set_billboard_mode(BaseMaterial3D::BILLBOARD_DISABLED);
-	}
+	s.quad.instantiate();
+	s.quad->set_size(Vector2(quad_w, quad_h));
+	s.quad->set_material(s.material);
 
-	Ref<QuadMesh> quad;
-	quad.instantiate();
-	// ВАЖНО: Размеры QuadMesh теперь идеально совпадают с пропорциями фрейма
-	quad->set_size(Vector2(quad_w, quad_h));
-	quad->set_material(g.material);
-
-	g.multimesh.instantiate();
-	g.multimesh->set_transform_format(MultiMesh::TRANSFORM_3D);
-	g.multimesh->set_mesh(quad);
-
-	g.mmi = memnew(MultiMeshInstance3D);
-	g.mmi->set_multimesh(g.multimesh);
-	manager_node->add_child(g.mmi);
-
-	auto [inserted, _] = groups.emplace(key, std::move(g));
-	return inserted->second;
+	styles[key] = s;
+	return styles[key];
 }
 
-// Теперь функция принимает только quad_w и quad_h. Они служат и размером, и отступом!
-void generate_face(std::vector<Transform3D>& instances, const Transform3D& parent_xform, Vector3 offset, Vector3 euler_rot, double w, double h, double quad_w, double quad_h, bool is_billboard) {
+// Получить или создать ЧАНК для расстановки MultiMesh
+TextChunk& get_or_create_chunk(Node3D* manager_node, const std::string& chunk_key, TextStyle& style) {
+	auto it = chunks.find(chunk_key);
+	if (it != chunks.end()) return it->second;
+
+	TextChunk c;
+	c.multimesh.instantiate();
+	c.multimesh->set_transform_format(MultiMesh::TRANSFORM_3D);
+	c.multimesh->set_mesh(style.quad); // Используем Mesh из стиля!
+
+	c.mmi = memnew(MultiMeshInstance3D);
+	c.mmi->set_multimesh(c.multimesh);
+	
+	// Включаем встроенный Culling от Godot, чтобы не рендерить невидимые чанки!
+	c.mmi->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+	
+	manager_node->add_child(c.mmi);
+
+	chunks[chunk_key] = c;
+	return chunks[chunk_key];
+}
+
+void generate_face(Node3D* manager_node, const std::string& style_key, TextStyle& style, double c_size, 
+				   const Transform3D& parent_xform, Vector3 offset, Vector3 euler_rot, 
+				   double w, double h, double quad_w, double quad_h, bool is_billboard) {
 	
 	int count_x = (int)std::floor(w / quad_w);
 	int count_y = (int)std::floor(h / quad_h);
@@ -172,20 +181,35 @@ void generate_face(std::vector<Transform3D>& instances, const Transform3D& paren
 			Vector3 local_pos = Vector3(start_x + x * quad_w, start_y + y * quad_h, 0); 
 			Transform3D local_transform;
 			
-			if (is_billboard) {
-				local_transform.basis = Basis(); 
-			} else {
-				local_transform.basis = face_rot;
-			}
+			if (is_billboard) local_transform.basis = Basis(); 
+			else local_transform.basis = face_rot;
 
 			local_transform.origin = offset + face_rot.xform(local_pos);
-			instances.push_back(parent_xform * local_transform);
+			
+			// Получаем ГЛОБАЛЬНУЮ позицию именно этого слова
+			Transform3D final_xform = parent_xform * local_transform;
+			Vector3 global_pos = final_xform.origin;
+
+			// Вычисляем координаты чанка (Сектора)
+			int cx = (int)std::floor(global_pos.x / c_size);
+			int cy = (int)std::floor(global_pos.y / c_size);
+			int cz = (int)std::floor(global_pos.z / c_size);
+
+			// Собираем ключ: Стиль + Координаты чанка
+			char chunk_key_buf[512];
+			std::snprintf(chunk_key_buf, sizeof(chunk_key_buf), "%s|chunk_%d_%d_%d", style_key.c_str(), cx, cy, cz);
+			std::string chunk_key(chunk_key_buf);
+
+			// Добавляем слово в нужный сектор!
+			TextChunk& chunk = get_or_create_chunk(manager_node, chunk_key, style);
+			chunk.instances.push_back(final_xform);
 		}
 	}
 }
 
 void OnAwake(Caller* instance) {
-	groups.clear();
+	styles.clear();
+	chunks.clear();
 	collected = false;
 }
 
@@ -200,6 +224,10 @@ void OnProcess(Caller* instance, double delta) {
 
 	TypedArray<Node> nodes = tree->get_nodes_in_group("text_wall");
 	if (nodes.size() == 0) return; 
+
+	// Получаем размер чанка
+	double c_size = chunk_size;
+	if (c_size <= 1.0) c_size = 32.0;
 
 	bool processed_any = false;
 
@@ -226,7 +254,6 @@ void OnProcess(Caller* instance, double delta) {
 		}
 
 		if (!found_box) continue;
-
 		processed_any = true;
 
 		int fw = raw_node->get_meta("frame_width");
@@ -241,7 +268,7 @@ void OnProcess(Caller* instance, double delta) {
 		double quad_h = t_scale;
 		double quad_w = t_scale * ((double)fw / (double)fh);
 
-		// Уникальный ключ стиля со всеми параметрами Фигмы
+		// Уникальный ключ СТИЛЯ
 		String key_str = String(raw_node->get_meta("block_text")) + "_" + 
 						 String::num_int64((bool)raw_node->get_meta("uppercase")) + "_" +
 						 String(raw_node->get_meta("font_path")) + "_" + 
@@ -255,58 +282,54 @@ void OnProcess(Caller* instance, double delta) {
 						 ((Color)raw_node->get_meta("outline_color")).to_html() + "_" + 
 						 String::num_int64((bool)raw_node->get_meta("enable_shadow")) + "_" +
 						 ((Color)raw_node->get_meta("shadow_color")).to_html() + "_" + 
-						 String::num_int64((int)raw_node->get_meta("shadow_x")) + "_" +
-						 String::num_int64((int)raw_node->get_meta("shadow_y")) + "_" + 
 						 String::num_int64((int)raw_node->get_meta("shadow_blur")) + "_" +
-						 String::num_int64(fw) + "_" + String::num_int64(fh) + "_" +
-						 String::num(t_scale) + "_" + String::num_int64(is_billboard);
+						 String::num_int64(fw) + "_" + String::num_int64(fh);
 						 
 		std::string unique_style_key = key_str.utf8().get_data();
 
-		TextGroup& g = get_or_create_group(manager_node, raw_node, unique_style_key);
+		// 1. Берем Стиль (Viewport + Material)
+		TextStyle& style = get_or_create_style(manager_node, raw_node, unique_style_key);
 		
-		// 1. Ось Z (Перед и Зад)
+		// 2. Раскидываем экземпляры по Чанкам
 		if (size.x >= quad_w && size.y >= quad_h) {
 			if (size.z < quad_h) {
-				generate_face(g.instances, parent_xform, Vector3(0, 0, 0), Vector3(0, 0, 0), size.x, size.y, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, 0, 0), Vector3(0, 0, 0), size.x, size.y, quad_w, quad_h, is_billboard);
 			} else {
-				generate_face(g.instances, parent_xform, Vector3(0, 0, size.z / 2.0), Vector3(0, 0, 0), size.x, size.y, quad_w, quad_h, is_billboard);
-				generate_face(g.instances, parent_xform, Vector3(0, 0, -size.z / 2.0), Vector3(0, PI_GODOT, 0), size.x, size.y, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, 0, size.z / 2.0), Vector3(0, 0, 0), size.x, size.y, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, 0, -size.z / 2.0), Vector3(0, PI_GODOT, 0), size.x, size.y, quad_w, quad_h, is_billboard);
 			}
 		}
 
-		// 2. Ось X (Право и Лево)
 		if (size.z >= quad_w && size.y >= quad_h) {
 			if (size.x < quad_h) {
-				generate_face(g.instances, parent_xform, Vector3(0, 0, 0), Vector3(0, -PI_GODOT / 2.0, 0), size.z, size.y, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, 0, 0), Vector3(0, -PI_GODOT / 2.0, 0), size.z, size.y, quad_w, quad_h, is_billboard);
 			} else {
-				generate_face(g.instances, parent_xform, Vector3(size.x / 2.0, 0, 0), Vector3(0, -PI_GODOT / 2.0, 0), size.z, size.y, quad_w, quad_h, is_billboard);
-				generate_face(g.instances, parent_xform, Vector3(-size.x / 2.0, 0, 0), Vector3(0, PI_GODOT / 2.0, 0), size.z, size.y, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(size.x / 2.0, 0, 0), Vector3(0, -PI_GODOT / 2.0, 0), size.z, size.y, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(-size.x / 2.0, 0, 0), Vector3(0, PI_GODOT / 2.0, 0), size.z, size.y, quad_w, quad_h, is_billboard);
 			}
 		}
 
-		// 3. Ось Y (Пол и Потолок)
-		// ВНИМАНИЕ: На полу слова ложатся вдоль осей X и Z. Ширина мапится на X, высота на Z.
 		if (size.x >= quad_w && size.z >= quad_h) {
 			if (size.y < quad_h) {
-				generate_face(g.instances, parent_xform, Vector3(0, 0, 0), Vector3(-PI_GODOT / 2.0, 0, 0), size.x, size.z, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, 0, 0), Vector3(-PI_GODOT / 2.0, 0, 0), size.x, size.z, quad_w, quad_h, is_billboard);
 			} else {
-				generate_face(g.instances, parent_xform, Vector3(0, size.y / 2.0, 0), Vector3(-PI_GODOT / 2.0, 0, 0), size.x, size.z, quad_w, quad_h, is_billboard);
-				generate_face(g.instances, parent_xform, Vector3(0, -size.y / 2.0, 0), Vector3(PI_GODOT / 2.0, 0, 0), size.x, size.z, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, size.y / 2.0, 0), Vector3(-PI_GODOT / 2.0, 0, 0), size.x, size.z, quad_w, quad_h, is_billboard);
+				generate_face(manager_node, unique_style_key, style, c_size, parent_xform, Vector3(0, -size.y / 2.0, 0), Vector3(PI_GODOT / 2.0, 0, 0), size.x, size.z, quad_w, quad_h, is_billboard);
 			}
 		}
 	}
 
-	// Загружаем всю сетку в видеокарту
+	// 3. Финализация: загружаем все разделенные сектора в видеокарту
 	if (processed_any) {
 		collected = true;
-		for (auto& kv : groups) {
-			TextGroup& g = kv.second;
-			g.multimesh->set_instance_count((int)g.instances.size());
-			for (int i = 0; i < (int)g.instances.size(); i++) {
-				g.multimesh->set_instance_transform(i, g.instances[i]);
+		for (auto& kv : chunks) {
+			TextChunk& c = kv.second;
+			c.multimesh->set_instance_count((int)c.instances.size());
+			for (int i = 0; i < (int)c.instances.size(); i++) {
+				c.multimesh->set_instance_transform(i, c.instances[i]);
 			}
 		}
+		Output("[Manager] Успех! Создано стилей: %d | Сгенерировано Чанков: %d", (int)styles.size(), (int)chunks.size());
 	}
 }
 
