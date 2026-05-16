@@ -102,6 +102,15 @@ JENOVA_PROPERTY(double, scanline_count,    100.0)
 JENOVA_PROPERTY(double, hover_amp,         0.0)               // амплитуда float-up/down
 JENOVA_PROPERTY(double, hover_speed,       0.5)
 
+// === WIND (непрерывный дрейф) ===
+// Тайлы НЕПРЕРЫВНО летят по wind_dir на wind_distance метров, потом fade-out и появляются у начала.
+JENOVA_PROPERTY(Vector3, wind_dir,         Vector3(1, 0, 0))  // куда дует
+JENOVA_PROPERTY(double,  wind_strength,    0.0)               // 0 = выкл; >0 = вкл (любое значение)
+JENOVA_PROPERTY(double,  wind_distance,    2.0)               // полная дистанция полёта тайла в метрах
+JENOVA_PROPERTY(double,  wind_speed,       0.3)               // циклов в секунду
+JENOVA_PROPERTY(double,  wind_gusts,       0.5)               // 0..1; модуляция скорости (рваные порывы)
+JENOVA_PROPERTY(double,  wind_chaos,       1.0)               // 0..1; per-chunk desync фазы
+
 static String wrap_align(const String& s, int align) {
 	if (align == 1) return "[center]" + s + "[/center]";
 	if (align == 2) return "[right]"  + s + "[/right]";
@@ -215,6 +224,12 @@ void OnProcess(Caller* instance, double delta) {
 	double p_scanline_count   = self->get("scanline_count");
 	double p_hover_amp        = self->get("hover_amp");
 	double p_hover_speed      = self->get("hover_speed");
+	Vector3 p_wind_dir        = self->get("wind_dir");
+	double p_wind_strength    = self->get("wind_strength");
+	double p_wind_distance    = self->get("wind_distance");
+	double p_wind_speed       = self->get("wind_speed");
+	double p_wind_gusts       = self->get("wind_gusts");
+	double p_wind_chaos       = self->get("wind_chaos");
 
 	// === Глобальный override через TextWallGlobalSettings ===
 	// Любая Node со скриптом TextWallGlobalSettings (она автоматически добавляется в группу
@@ -403,6 +418,12 @@ void OnProcess(Caller* instance, double delta) {
 				smat->set_shader_parameter("scanline_count",    p_scanline_count);
 				smat->set_shader_parameter("hover_amp",         p_hover_amp);
 				smat->set_shader_parameter("hover_speed",       p_hover_speed);
+				smat->set_shader_parameter("wind_dir",          p_wind_dir);
+				smat->set_shader_parameter("wind_strength",     p_wind_strength);
+				smat->set_shader_parameter("wind_distance",     p_wind_distance);
+				smat->set_shader_parameter("wind_speed",        p_wind_speed);
+				smat->set_shader_parameter("wind_gusts",        p_wind_gusts);
+				smat->set_shader_parameter("wind_chaos",        p_wind_chaos);
 			}
 		}
 
@@ -508,6 +529,12 @@ void OnProcess(Caller* instance, double delta) {
 	smat->set_shader_parameter("scanline_count",    p_scanline_count);
 	smat->set_shader_parameter("hover_amp",         p_hover_amp);
 	smat->set_shader_parameter("hover_speed",       p_hover_speed);
+	smat->set_shader_parameter("wind_dir",          p_wind_dir);
+	smat->set_shader_parameter("wind_strength",     p_wind_strength);
+	smat->set_shader_parameter("wind_distance",     p_wind_distance);
+	smat->set_shader_parameter("wind_speed",        p_wind_speed);
+	smat->set_shader_parameter("wind_gusts",        p_wind_gusts);
+	smat->set_shader_parameter("wind_chaos",        p_wind_chaos);
 
 	Ref<Texture2D> vtex = vp->get_texture();
 	if (vtex.is_null()) TW_LOGE("vp->get_texture() returned null - material will draw nothing");

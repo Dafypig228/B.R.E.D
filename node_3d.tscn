@@ -112,6 +112,12 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=615431451]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.925236, 0, 24.575272)
@@ -128,7 +134,7 @@ distribution_mode = 1
 text_effect = 1
 typing_speed = 5.0
 min_progress = 1.0
-wipe_softness = 1.0
+wipe_softness = -1.0
 
 [node name="Tree" type="Node3D" parent="." unique_id=1420965782]
 
@@ -179,6 +185,12 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tree/Blue3" unique_id=319893021]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.27045965, 0.74283165, 0.5904248)
@@ -239,6 +251,12 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tree/Blue" unique_id=1948689845]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.702, -5.311804, 1.706665, 3.1050406)
@@ -294,6 +312,12 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tree2/Blue3" unique_id=34098711]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.27045965, 0.74283165, 0.5904248)
@@ -354,6 +378,12 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tree2/Blue" unique_id=1567859782]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.702, -5.311804, 1.706665, 3.1050406)
@@ -411,6 +441,12 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Train/TrainBottom2" unique_id=817016086]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.188019, 0.41219807, 0.31799316)
@@ -471,13 +507,18 @@ scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, 0, 0)
+wind_strength = 0.0
+wind_distance = 2.0
+wind_speed = 0.3
+wind_gusts = 0.5
+wind_chaos = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Train/TrainMiddle" unique_id=595912585]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.192444, 1.5588965, 0.32818604)
 shape = SubResource("BoxShape3D_jka67")
 
 [node name="Wind" type="StaticBody3D" parent="." unique_id=310602387]
-visible = false
 script = ExtResource("4_r3fl7")
 block_text = "Wind"
 uppercase = false
@@ -500,29 +541,35 @@ shadow_color = Color(0, 0, 0, 0.5)
 shadow_x = 2
 shadow_y = 2
 shadow_blur = 0
-tile_size = 1.0
-tile_spacing = 10.0
-tile_aspect = 2.0
+tile_size = 0.7
+tile_spacing = 3.0
+tile_aspect = 1.0
 render_quality = 256
 is_billboard = true
-chunk_size = 16.0
+chunk_size = 5.0
 render_distance = 0.0
 distribution_mode = 0
 tint = Color(1, 1, 1, 1)
 glow_strength = 0.0
 glow_color = Color(1, 1, 1, 1)
-pulse_speed = 2.0
+pulse_speed = 1.0
 pulse_amount = 0.5
 flicker_speed = 0.0
 flicker_amount = 0.5
-wave_amp = 4.0
-wave_speed = 2.0
+wave_amp = 0.0
+wave_speed = 1.0
 wave_freq = 0.3
 rainbow_speed = 0.0
 scanline_strength = 0.0
 scanline_count = 100.0
 hover_amp = 0.0
 hover_speed = 0.5
+wind_dir = Vector3(1, -0.2, 0)
+wind_strength = 1.0
+wind_distance = 5.0
+wind_speed = 2.0
+wind_gusts = 0.5
+wind_chaos = 5.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Wind" unique_id=81643732]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.422974, 4.8745728, 17.355042)
