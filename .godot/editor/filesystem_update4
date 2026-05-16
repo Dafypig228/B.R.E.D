@@ -1,4 +1,3 @@
-res://TextRenderManager.cpp
 res://TextBlockGrid.cpp
+res://TextRenderManager.cpp
 res://node_3d.tscn
-res://text_block_grid.tscn

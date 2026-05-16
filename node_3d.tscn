@@ -21,17 +21,15 @@ tonemap_mode = 2
 [sub_resource type="BoxShape3D" id="BoxShape3D_r3fl7"]
 size = Vector3(2.332306, 2.7797852, 2.5912476)
 
-[sub_resource type="BoxMesh" id="BoxMesh_a202f"]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_noarx"]
-size = Vector3(115.21436, 0.36669922, 88.41413)
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_noarx"]
 albedo_color = Color(0.25490198, 0.18431373, 1, 1)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_a0tk4"]
 material = SubResource("StandardMaterial3D_noarx")
 uv2_padding = 2.4
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_noarx"]
+size = Vector3(69.36389, 0.36669922, 56.713413)
 
 [node name="MainScene" type="Node3D" unique_id=1178905114]
 
@@ -53,17 +51,6 @@ billboard = 1
 outline_modulate = Color(1, 1, 1, 0)
 text = "text"
 script = ExtResource("1_a0tk4")
-
-[node name="Floor" type="StaticBody3D" parent="." unique_id=147274361]
-visible = false
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=805437774]
-transform = Transform3D(155.73048, 0, 0, 0, 0.07509035, 0, 0, 0, 214.65794, 0, 0, 0)
-mesh = SubResource("BoxMesh_a202f")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=1251798125]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.7807636, -0.3166504, 9.7506485)
-shape = SubResource("BoxShape3D_noarx")
 
 [node name="Blue" type="StaticBody3D" parent="." unique_id=930397945]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.6016793, 0, 0)
@@ -93,22 +80,47 @@ GRAVITY = 9.8
 [node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1023497856]
 script = ExtResource("4_r3fl7")
 block_text = "Floor"
-text_size = 2.0
-text_spacing_x = 2.0
-text_spacing_y = 1.0
+uppercase = false
+font_path = ""
+font_size = 64
+font_color = Color(1, 1, 1, 1)
+line_spacing = 0
+align_h = 1
+align_v = 1
+autowrap = false
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+frame_width = 512
+frame_height = 256
+text_scale = 2.0
+is_billboard = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=615431451]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.7807636, -0.3166504, 36.905468)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.925236, 0, 15.850359)
 shape = SubResource("BoxShape3D_noarx")
 script = ExtResource("4_r3fl7")
 block_text = "hello"
-text_size = 2.77
-text_spacing_x = 2.0
-text_spacing_y = 1.0
-
-[node name="Node3D" type="Node3D" parent="." unique_id=2005658870]
-script = ExtResource("4_r3fl7")
-block_text = "text"
-text_size = 2.0
-text_spacing_x = 2.0
-text_spacing_y = 1.0
+uppercase = false
+font_path = ""
+font_size = 64
+font_color = Color(1, 1, 1, 1)
+line_spacing = 0
+align_h = 1
+align_v = 1
+autowrap = false
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+frame_width = 512
+frame_height = 256
+text_scale = 2.0
+is_billboard = true
