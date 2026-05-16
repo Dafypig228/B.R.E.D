@@ -2,7 +2,9 @@
 
 [ext_resource type="PackedScene" uid="uid://b4tjjjslr1imc" path="res://player.tscn" id="1_a202f"]
 [ext_resource type="Script" uid="uid://ctb8vlk67cied" path="res://player.cpp" id="2_noarx"]
+[ext_resource type="Script" uid="uid://b4y5smthd0npd" path="res://TextWallGlobalSettings.cpp" id="4_jka67"]
 [ext_resource type="Script" uid="uid://gmnupvkg0n6g" path="res://TextBlockGrid.cpp" id="4_r3fl7"]
+[ext_resource type="Script" uid="uid://fbfdmv8li3lr" path="res://train.cpp" id="5_jka67"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_noarx"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -15,37 +17,41 @@ sky_material = SubResource("ProceduralSkyMaterial_noarx")
 background_mode = 1
 sky = SubResource("Sky_a0tk4")
 ambient_light_source = 3
-tonemap_mode = 2
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_noarx"]
-albedo_color = Color(0.25490198, 0.18431373, 1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_a0tk4"]
-material = SubResource("StandardMaterial3D_noarx")
-uv2_padding = 2.4
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_r3fl7"]
-size = Vector3(2.332306, 2.7797852, 2.5912476)
+tonemap_mode = 3
+ssr_fade_in = 0.095591955
+glow_enabled = true
+glow_levels/1 = 0.6
+glow_levels/4 = 0.6
+glow_intensity = 0.7
+glow_bloom = 0.4
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.15
+adjustment_enabled = true
+adjustment_brightness = 0.7
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_noarx"]
-size = Vector3(69.36389, 0.36669922, 51.5856)
+size = Vector3(69.36389, 0.36669922, 39.263588)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_a0tk4"]
+radius = 0.41802928
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_a0tk4"]
+height = 3.333252
+radius = 0.47802734
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_r3fl7"]
+size = Vector3(27.376038, 1, 4.965088)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jka67"]
+size = Vector3(27.384888, 1.8829346, 4.9542236)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_i5arm"]
+size = Vector3(86.07544, 10.7491455, 35.710083)
 
 [node name="MainScene" type="Node3D" unique_id=1178905114]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1617225657]
 environment = SubResource("Environment_r3fl7")
-
-[node name="Blue" type="StaticBody3D" parent="." unique_id=930397945]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.6016793, 0, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Blue" unique_id=1229539316]
-transform = Transform3D(1.6724324, 0, 0, 0, 1.5007305, 0, 0, 0, 1.7614739, 0, 0, 0)
-mesh = SubResource("CylinderMesh_a0tk4")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Blue" unique_id=1948689845]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.7021562, 0.047210693, 0.16186523, -0.103433475)
-shape = SubResource("BoxShape3D_r3fl7")
-debug_color = Color(0, 0, 0, 0.41960785)
 
 [node name="Player" parent="." unique_id=1190480487 instance=ExtResource("1_a202f")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.379631, 0.8666991, 10.818211)
@@ -60,15 +66,16 @@ BASE_FOV = 75.0
 FOV_CHANGE = 1.5
 GRAVITY = 9.8
 
-[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1023497856]
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1023497856]
 script = ExtResource("4_r3fl7")
-block_text = "Typography"
+block_text = "Floor"
 uppercase = false
 shader_path = "res://text_reveal.gdshader"
 wipe_softness = 0.02
 text_effect = 1
-typing_speed = 2.0
-trigger_distance = 7.0
+typing_speed = 1.0
+trigger_distance = 8.0
+min_progress = 0.0
 font_path = ""
 font_size = 63
 font_color = Color(1, 1, 1, 1)
@@ -82,13 +89,442 @@ shadow_color = Color(0, 0, 0, 0.5)
 shadow_x = 2
 shadow_y = 2
 shadow_blur = 0
-frame_width = 512
-frame_height = 512
-text_scale = 1.0
+tile_size = 1.0
+tile_spacing = 1.0
+tile_aspect = 2.0
+render_quality = 256
 is_billboard = true
 chunk_size = 1.0
 render_distance = 9.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=615431451]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.925236, 0, 18.414265)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=615431451]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.925236, 0, 24.575272)
 shape = SubResource("BoxShape3D_noarx")
+
+[node name="TextWallGlobalSettings" type="Node3D" parent="." unique_id=1918425467]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 2.8601875, 0.53997374, 6.9228783)
+script = ExtResource("4_jka67")
+render_distance = 15.0
+chunk_size = 1.0
+trigger_distance = 12.0
+tile_spacing = -1.0
+distribution_mode = 1
+text_effect = 1
+typing_speed = 5.0
+min_progress = 1.0
+wipe_softness = 1.0
+
+[node name="Tree" type="Node3D" parent="." unique_id=1420965782]
+
+[node name="Blue3" type="StaticBody3D" parent="Tree" unique_id=1862172333]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 2.8601875, 0.53997374, 6.9228783)
+script = ExtResource("4_r3fl7")
+block_text = "Leaf"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 0
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(5.1499906e-06, 0.6266942, 0.13510945, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 0.5
+tile_spacing = 0.6
+tile_aspect = 1.0
+render_quality = 256
+is_billboard = true
+chunk_size = 1.0
+render_distance = 15.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tree/Blue3" unique_id=319893021]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.27045965, 0.74283165, 0.5904248)
+shape = SubResource("SphereShape3D_a0tk4")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Tree/Blue3" unique_id=130601042]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0.44538772, 0.96618783, 0.98968697)
+shape = SubResource("SphereShape3D_a0tk4")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Tree/Blue3" unique_id=1821477620]
+transform = Transform3D(1.4399999, 0, 0, 0, 1.4399999, 0, 0, 0, 1.4399999, 0.71241176, 0.99882793, 0.4244492)
+shape = SubResource("SphereShape3D_a0tk4")
+
+[node name="Blue" type="StaticBody3D" parent="Tree" unique_id=930397945]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.0880375, 0, 5.8299646)
+script = ExtResource("4_r3fl7")
+block_text = "Wood"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 1
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(0.4862745, 0.16862746, 0, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 2.0
+tile_spacing = 1.0
+tile_aspect = 1.0
+render_quality = 256
+is_billboard = true
+chunk_size = 1.0
+render_distance = 15.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tree/Blue" unique_id=1948689845]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.702, -5.311804, 1.706665, 3.1050406)
+shape = SubResource("CylinderShape3D_a0tk4")
+
+[node name="Tree2" type="Node3D" parent="." unique_id=1650967464]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6357417, 2.3841858e-07, 4.8161573)
+
+[node name="Blue3" type="StaticBody3D" parent="Tree2" unique_id=1422680886]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 2.8601875, 0.53997374, 6.9228783)
+script = ExtResource("4_r3fl7")
+block_text = "Leaf"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 0
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(5.1499906e-06, 0.6266942, 0.13510945, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 0.5
+tile_spacing = 0.6
+tile_aspect = 1.0
+render_quality = 256
+is_billboard = true
+chunk_size = 1.0
+render_distance = 15.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tree2/Blue3" unique_id=34098711]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.27045965, 0.74283165, 0.5904248)
+shape = SubResource("SphereShape3D_a0tk4")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Tree2/Blue3" unique_id=1338346202]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0.44538772, 0.96618783, 0.98968697)
+shape = SubResource("SphereShape3D_a0tk4")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Tree2/Blue3" unique_id=608238102]
+transform = Transform3D(1.4399999, 0, 0, 0, 1.4399999, 0, 0, 0, 1.4399999, 0.71241176, 0.99882793, 0.4244492)
+shape = SubResource("SphereShape3D_a0tk4")
+
+[node name="Blue" type="StaticBody3D" parent="Tree2" unique_id=1823618303]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.0880375, 0, 5.8299646)
+script = ExtResource("4_r3fl7")
+block_text = "Wood"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 1
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(0.4862745, 0.16862746, 0, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 2.0
+tile_spacing = 1.0
+tile_aspect = 1.0
+render_quality = 256
+is_billboard = true
+chunk_size = 1.0
+render_distance = 15.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tree2/Blue" unique_id=1567859782]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.702, -5.311804, 1.706665, 3.1050406)
+shape = SubResource("CylinderShape3D_a0tk4")
+
+[node name="Train" type="Node3D" parent="." unique_id=1278062513]
+script = ExtResource("5_jka67")
+trainSpeed = 50.0
+MaxPose = 50.0
+
+[node name="TrainBottom2" type="StaticBody3D" parent="Train" unique_id=1740023011]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3221817, 0)
+script = ExtResource("4_r3fl7")
+block_text = "Train"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 0
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(1, 1, 1, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 2.0
+tile_spacing = 2.0
+tile_aspect = 2.0
+render_quality = 256
+is_billboard = true
+chunk_size = 16.0
+render_distance = 0.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Train/TrainBottom2" unique_id=817016086]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.188019, 0.41219807, 0.31799316)
+shape = SubResource("BoxShape3D_r3fl7")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Train/TrainBottom2" unique_id=1272002520]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.188019, -2.4285026, 0.31799316)
+shape = SubResource("BoxShape3D_r3fl7")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Train/TrainBottom2" unique_id=1818266890]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.188019, -3.2752733, 0.31799316)
+shape = SubResource("BoxShape3D_r3fl7")
+
+[node name="TrainMiddle" type="StaticBody3D" parent="Train" unique_id=1571058114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.29774666, 0)
+script = ExtResource("4_r3fl7")
+block_text = "Train"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 0
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(1, 0, 0, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 2.0
+tile_spacing = 1.5
+tile_aspect = 2.0
+render_quality = 256
+is_billboard = true
+chunk_size = 16.0
+render_distance = 0.0
+distribution_mode = 1
+tint = Color(1, 1, 1, 1)
+glow_strength = 3.0
+glow_color = Color(1, 0, 0, 1)
+pulse_speed = 0.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 0.0
+wave_speed = 1.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Train/TrainMiddle" unique_id=595912585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.192444, 1.5588965, 0.32818604)
+shape = SubResource("BoxShape3D_jka67")
+
+[node name="Wind" type="StaticBody3D" parent="." unique_id=310602387]
+visible = false
+script = ExtResource("4_r3fl7")
+block_text = "Wind"
+uppercase = false
+shader_path = "res://text_reveal.gdshader"
+wipe_softness = 0.02
+text_effect = 0
+typing_speed = 1.5
+trigger_distance = 8.0
+min_progress = 0.0
+font_path = ""
+font_size = 64
+font_color = Color(1, 1, 1, 1)
+line_spacing = 0
+align_h = 1
+autowrap = false
+outline_size = 0
+outline_color = Color(0, 0, 0, 1)
+enable_shadow = false
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_x = 2
+shadow_y = 2
+shadow_blur = 0
+tile_size = 1.0
+tile_spacing = 10.0
+tile_aspect = 2.0
+render_quality = 256
+is_billboard = true
+chunk_size = 16.0
+render_distance = 0.0
+distribution_mode = 0
+tint = Color(1, 1, 1, 1)
+glow_strength = 0.0
+glow_color = Color(1, 1, 1, 1)
+pulse_speed = 2.0
+pulse_amount = 0.5
+flicker_speed = 0.0
+flicker_amount = 0.5
+wave_amp = 4.0
+wave_speed = 2.0
+wave_freq = 0.3
+rainbow_speed = 0.0
+scanline_strength = 0.0
+scanline_count = 100.0
+hover_amp = 0.0
+hover_speed = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Wind" unique_id=81643732]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.422974, 4.8745728, 17.355042)
+shape = SubResource("BoxShape3D_i5arm")
+disabled = true
