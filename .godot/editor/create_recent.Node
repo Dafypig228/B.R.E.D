@@ -1,6 +1,9 @@
-CollisionShape3D
-StaticBody3D
+Generic6DOFJoint3D
+RigidBody3D
 Node3D
+StaticBody3D
+Skeleton3D
+CollisionShape3D
 MeshInstance3D
 Label3D
 Label

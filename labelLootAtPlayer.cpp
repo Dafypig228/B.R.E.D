@@ -13,7 +13,9 @@ using namespace godot;
 using namespace jenova::sdk;
 
 // Self Instance
-CharacterBody3D* player = nullptr;
+// static → внутренняя линковка: иначе конфликт с одноимёнными глобалами
+// других скриптов при линковке в единый Jenova-модуль (LNK2005).
+static CharacterBody3D* player = nullptr;
 
 // Jenova Script Block Start
 JENOVA_SCRIPT_BEGIN

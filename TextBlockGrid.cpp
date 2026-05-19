@@ -64,13 +64,6 @@ JENOVA_PROPERTY(int,    shadow_x, 2)
 JENOVA_PROPERTY(int,    shadow_y, 2)
 JENOVA_PROPERTY(int,    shadow_blur, 0)
 
-// === РАЗМЕР И ПЛОТНОСТЬ ТАЙЛОВ — три независимых регулятора ===
-// tile_size:      визуальная высота тайла в метрах. Контролирует ТОЛЬКО размер, не количество.
-// tile_spacing:   расстояние между центрами тайлов в метрах. МЕНЬШЕ → БОЛЬШЕ ТАЙЛОВ. Независимо от размера.
-//                 tile_size > tile_spacing → тайлы перекрываются (плотный «ковёр» текста).
-//                 tile_size < tile_spacing → между тайлами видны промежутки.
-// tile_aspect:    соотношение width/height тайла. 2.0 = широкий, 1.0 = квадрат.
-// render_quality: высота текстуры в пикселях (256-1024). Только резкость, ни на что больше не влияет.
 JENOVA_PROPERTY(double, tile_size,      1.0)
 JENOVA_PROPERTY(double, tile_spacing,   1.0)
 JENOVA_PROPERTY(double, tile_aspect,    2.0)
@@ -80,12 +73,8 @@ JENOVA_PROPERTY(bool,   is_billboard,   true)
 JENOVA_PROPERTY(double, chunk_size, 16.0)
 JENOVA_PROPERTY(double, render_distance, 0.0)
 
-// === РЕЖИМ РАСПРЕДЕЛЕНИЯ ТЕКСТА ===
-// 0 = SURFACE — тайлы строго на поверхности шейпа. Подходит для стен, полов, столбов.
-// 1 = VOLUME  — тайлы заполняют ОБЪЁМ шейпа. Подходит для листвы, облаков, "плотных" объектов.
 JENOVA_PROPERTY(int,    distribution_mode, 0)
 
-// === ВИЗУАЛЬНЫЕ ЭФФЕКТЫ (живые, без rebuild, стакаются) ===
 JENOVA_PROPERTY(Color,  tint,              Color(1, 1, 1, 1))
 JENOVA_PROPERTY(double, glow_strength,     0.0)               // 0 = выкл; >0 = HDR boost
 JENOVA_PROPERTY(Color,  glow_color,        Color(1, 1, 1, 1))
@@ -102,14 +91,9 @@ JENOVA_PROPERTY(double, scanline_count,    100.0)
 JENOVA_PROPERTY(double, hover_amp,         0.0)               // амплитуда float-up/down
 JENOVA_PROPERTY(double, hover_speed,       0.5)
 
-// === WIND (непрерывный дрейф) ===
-// Тайлы НЕПРЕРЫВНО летят по wind_dir на wind_distance метров, потом fade-out и появляются у начала.
-JENOVA_PROPERTY(Vector3, wind_dir,         Vector3(1, 0, 0))  // куда дует
-JENOVA_PROPERTY(double,  wind_strength,    0.0)               // 0 = выкл; >0 = вкл (любое значение)
-JENOVA_PROPERTY(double,  wind_distance,    2.0)               // полная дистанция полёта тайла в метрах
-JENOVA_PROPERTY(double,  wind_speed,       0.3)               // циклов в секунду
-JENOVA_PROPERTY(double,  wind_gusts,       0.5)               // 0..1; модуляция скорости (рваные порывы)
-JENOVA_PROPERTY(double,  wind_chaos,       1.0)               // 0..1; per-chunk desync фазы
+JENOVA_PROPERTY(Vector3, wind_dir,         Vector3(1, 0, 0))  // куда дует ветер (world space)
+JENOVA_PROPERTY(double,  wind_strength,    0.0)               // 0 = выкл; ~1 = сильный ветер
+JENOVA_PROPERTY(double,  wind_speed,       1.0)               // скорость потока
 
 static String wrap_align(const String& s, int align) {
 	if (align == 1) return "[center]" + s + "[/center]";
@@ -123,10 +107,59 @@ void OnProcess(Caller* instance, double delta) {
 	if (!self) return;
 
 	String name_str = self->get_name();
-	const char* name_cstr = name_str.utf8().get_data();
+	CharString name_utf8 = name_str.utf8();          // держим буфер живым (иначе UAF)
+	const char* name_cstr = name_utf8.get_data();
 
-	// 1) Источники формы — ВСЕ CollisionShape3D-дети с поддерживаемым шейпом.
-	//    Текст применяется к каждому шейпу со своим transform.
+	{
+		Node* cr = self->get_node_or_null("ChunksRoot");
+		if (cr) {
+			int fx = self->get_meta("tw_effect", 0);
+			if (fx != 1 && fx != 2) return;            // effect 0 — делать нечего
+
+			Viewport* vpr = self->get_viewport();
+			Camera3D* fc  = vpr ? vpr->get_camera_3d() : nullptr;
+			if (!fc) return;
+
+			double f_trigger = self->get_meta("tw_trigger", 8.0);
+			double f_typing  = self->get_meta("tw_typing",  1.5);
+			double f_minprog = self->get_meta("tw_minprog", 0.0);
+			double f_csize   = self->get_meta("tw_csize",  16.0);
+
+			Vector3 cpos = fc->get_global_position();
+			double wdist = self->get_global_position().distance_to(cpos);
+			bool wnear = (wdist <= f_trigger + f_csize);
+			int settle = self->get_meta("tw_settle", 0);
+			if      (wnear)      settle = 50;
+			else if (settle > 0) settle = settle - 1;
+			self->set_meta("tw_settle", settle);
+			if (!wnear && settle <= 0) return;          // далеко и улеглось — выходим
+
+			int fn = cr->get_child_count();
+			for (int i = 0; i < fn; i++) {
+				Node* mmi = cr->get_child(i);
+				if (!mmi) continue;
+				Vector3 mpos = mmi->call("get_global_position");
+				double dist = mpos.distance_to(cpos);
+				if (fx == 1) {
+					double target = (dist <= f_trigger) ? 1.0 : 0.0;
+					double progress = mmi->get_meta("progress", 0.0);
+					double step = f_typing * delta;
+					if      (progress < target) progress = std::min(target, progress + step);
+					else if (progress > target) progress = std::max(target, progress - step);
+					mmi->set_meta("progress", progress);
+					mmi->call("set_instance_shader_parameter", "chunk_progress", progress);
+				} else {
+					double t = (f_trigger > 0.001) ? (1.0 - dist / f_trigger) : 1.0;
+					if (t < 0.0) t = 0.0;
+					if (t > 1.0) t = 1.0;
+					double progress = f_minprog + (1.0 - f_minprog) * t;
+					mmi->call("set_instance_shader_parameter", "chunk_progress", progress);
+				}
+			}
+			return;
+		}
+	}
+
 	struct ShapeInfo {
 		String cls;
 		Vector3 box_size;
@@ -226,15 +259,8 @@ void OnProcess(Caller* instance, double delta) {
 	double p_hover_speed      = self->get("hover_speed");
 	Vector3 p_wind_dir        = self->get("wind_dir");
 	double p_wind_strength    = self->get("wind_strength");
-	double p_wind_distance    = self->get("wind_distance");
 	double p_wind_speed       = self->get("wind_speed");
-	double p_wind_gusts       = self->get("wind_gusts");
-	double p_wind_chaos       = self->get("wind_chaos");
 
-	// === Глобальный override через TextWallGlobalSettings ===
-	// Любая Node со скриптом TextWallGlobalSettings (она автоматически добавляется в группу
-	// "text_wall_global_settings" в OnAwake). Если значение в глобальной ноде >= 0 — оно перебивает
-	// per-wall значение. Если < 0 — per-wall остаётся.
 	{
 		SceneTree* tree = self->get_tree();
 		if (tree) {
@@ -270,9 +296,6 @@ void OnProcess(Caller* instance, double delta) {
 	}
 	Vector3 player_pos = cam ? cam->get_global_position() : Vector3();
 
-	// 3) Два хэша:
-	//   geom_hash — геометрия чанков + RTL стайлинг + шейдер. Меняется = полный REBUILD.
-	//   text_hash — только содержимое текста. Меняется = быстрое обновление RTL + redraw.
 	String geom_hash = p_font_path + "_" + String::num_int64(p_font_size) + "_" +
 					   p_font_color.to_html() + "_" + String::num_int64(p_line_spacing) + "_" +
 					   String::num_int64(p_align_h) + "_" + String::num_int64(p_autowrap) + "_" +
@@ -325,7 +348,7 @@ void OnProcess(Caller* instance, double delta) {
 			if (p_uppercase) new_text = new_text.to_upper();
 			rtl_upd->set_text(wrap_align(new_text, p_align_h));
 			rtl_upd->set_visible_characters(-1);
-			vp->set_update_mode(SubViewport::UPDATE_ALWAYS);
+			vp->set_update_mode(SubViewport::UPDATE_ONCE); // рендер 1 раз → текстура → авто-DISABLED
 			self->set_meta("update_ticks", 5);
 			self->set_meta("last_text_hash", text_hash);
 			TW_LOGI("TEXT UPDATE (no rebuild): '%s'", p_block_text.utf8().get_data());
@@ -336,31 +359,38 @@ void OnProcess(Caller* instance, double delta) {
 	// PER-FRAME: per-instance прогресс
 	// ==========================================
 	if (!needs_rebuild && chunks_root) {
-		int update_ticks = self->get_meta("update_ticks", 0);
-		if (vp) {
-			if (update_ticks > 0) {
-				vp->set_update_mode(SubViewport::UPDATE_ALWAYS);
-				self->set_meta("update_ticks", update_ticks - 1);
-				if (update_ticks == 1) TW_LOGI("viewport rendered, switching to UPDATE_DISABLED");
-			} else {
-				vp->set_update_mode(SubViewport::UPDATE_DISABLED);
-			}
-		}
+		// Виевпорт-выключение вынесено в fast-path (выполняется каждый кадр).
 
 		double progress_speed = (p_typing_speed > 0.001) ? p_typing_speed : 1.5;
 		int chunk_count = chunks_root->get_child_count();
 		int near_count = 0;
 
+		// ломает фрустум-куллинг (рендерится то, что за камерой) → держим малым.
+		double wind_cull_margin = (p_wind_strength > 0.0) ? 6.0 : 0.0;
+
+		// Направление взгляда камеры — для отсечения чанков позади камеры.
+		Vector3 cam_fwd;
+		if (cam) cam_fwd = cam->get_global_transform().basis.xform(Vector3(0, 0, -1));
+
+		int culled = 0;
 		for (int i = 0; i < chunk_count; i++) {
 			MultiMeshInstance3D* mmi = Object::cast_to<MultiMeshInstance3D>(chunks_root->get_child(i));
 			if (!mmi) continue;
+			mmi->set_extra_cull_margin(wind_cull_margin);
 
-			double progress = mmi->get_meta("progress", (p_text_effect == 0) ? 1.0 : 0.0);
+			if (cam) {
+				double behind = (mmi->get_global_position() - player_pos).dot(cam_fwd);
+				bool show = (behind > -p_chunk_size);
+				if (mmi->is_visible() != show) mmi->set_visible(show);
+				if (!show) { culled++; continue; }
+			}
 
-			if (p_text_effect == 0) {
-				// Текст всегда полностью виден
-				progress = 1.0;
-			} else if (p_text_effect == 1 && cam) {
+			// effect 0: прогресс всегда 1.0 (выставлен при ребилде) — per-frame не нужен.
+			if (p_text_effect == 0) continue;
+
+			double progress = mmi->get_meta("progress", 0.0);
+
+			if (p_text_effect == 1 && cam) {
 				// Печать-триггер: при входе в radius прогресс плавно идёт к 1, при выходе — к 0
 				double dist = mmi->get_global_position().distance_to(player_pos);
 				bool chunk_near = (dist <= p_trigger_distance);
@@ -378,10 +408,6 @@ void OnProcess(Caller* instance, double delta) {
 				else if (progress > target) progress = std::max(target, progress - step_amount);
 				mmi->set_meta("progress", progress);
 			} else if (p_text_effect == 2 && cam) {
-				// Заполнение по дистанции: чем ближе игрок, тем больше букв.
-				// dist = 0           -> progress = 1
-				// dist = trigger     -> progress = min_progress
-				// dist > trigger     -> progress = min_progress (clamp)
 				double dist = mmi->get_global_position().distance_to(player_pos);
 				double t = (p_trigger_distance > 0.001) ? (1.0 - dist / p_trigger_distance) : 1.0;
 				if (t < 0.0) t = 0.0;
@@ -420,14 +446,12 @@ void OnProcess(Caller* instance, double delta) {
 				smat->set_shader_parameter("hover_speed",       p_hover_speed);
 				smat->set_shader_parameter("wind_dir",          p_wind_dir);
 				smat->set_shader_parameter("wind_strength",     p_wind_strength);
-				smat->set_shader_parameter("wind_distance",     p_wind_distance);
 				smat->set_shader_parameter("wind_speed",        p_wind_speed);
-				smat->set_shader_parameter("wind_gusts",        p_wind_gusts);
-				smat->set_shader_parameter("wind_chaos",        p_wind_chaos);
+				smat->set_shader_parameter("wall_origin",       self->get_global_position());
 			}
 		}
 
-		TW_LOGV("per-frame: chunks=%d near=%d effect=%d", chunk_count, near_count, p_text_effect);
+		TW_LOGV("per-frame: chunks=%d culled=%d near=%d effect=%d", chunk_count, culled, near_count, p_text_effect);
 		return;
 	}
 
@@ -453,7 +477,7 @@ void OnProcess(Caller* instance, double delta) {
 		TW_LOGI("created InternalViewport");
 	}
 	vp->set_size(Vector2i(p_frame_width, p_frame_height));
-	vp->set_update_mode(SubViewport::UPDATE_ALWAYS);
+	vp->set_update_mode(SubViewport::UPDATE_ONCE); // рендер 1 раз → текстура → авто-DISABLED
 
 	RichTextLabel* rtl = Object::cast_to<RichTextLabel>(vp->get_node_or_null("InternalLabel"));
 	if (!rtl) {
@@ -531,10 +555,8 @@ void OnProcess(Caller* instance, double delta) {
 	smat->set_shader_parameter("hover_speed",       p_hover_speed);
 	smat->set_shader_parameter("wind_dir",          p_wind_dir);
 	smat->set_shader_parameter("wind_strength",     p_wind_strength);
-	smat->set_shader_parameter("wind_distance",     p_wind_distance);
 	smat->set_shader_parameter("wind_speed",        p_wind_speed);
-	smat->set_shader_parameter("wind_gusts",        p_wind_gusts);
-	smat->set_shader_parameter("wind_chaos",        p_wind_chaos);
+	smat->set_shader_parameter("wall_origin",       self->get_global_position());
 
 	Ref<Texture2D> vtex = vp->get_texture();
 	if (vtex.is_null()) TW_LOGE("vp->get_texture() returned null - material will draw nothing");
@@ -557,6 +579,7 @@ void OnProcess(Caller* instance, double delta) {
 	double c_size = p_chunk_size;
 
 	std::unordered_map<std::string, std::vector<Transform3D>> chunk_map;
+	std::vector<Transform3D> all_tiles;   // плоский список; чанкуем ПОСЛЕ сбора всех
 	int total_quads = 0;
 
 	auto basis_from_normal = [&](const Vector3& n_in) -> Basis {
@@ -848,6 +871,8 @@ void OnProcess(Caller* instance, double delta) {
 		mmi->set_multimesh(mm);
 		mmi->set_position(centroid);
 		mmi->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+		// Небольшой запас на культинг (per-frame цикл всё равно перевыставит).
+		mmi->set_extra_cull_margin((p_wind_strength > 0.0) ? 6.0 : 0.0);
 		if (p_render_distance > 0.1) {
 			mmi->set_visibility_range_end(p_render_distance);
 			mmi->set_visibility_range_end_margin(0.0);
@@ -869,6 +894,22 @@ void OnProcess(Caller* instance, double delta) {
 
 	TW_LOGI("=== REBUILD DONE === chunks=%d total_quads=%d quad=(%.2fx%.2f) initial_progress=%.1f",
 		(int)chunk_map.size(), total_quads, quad_w, quad_h, (p_text_effect == 0) ? 1.0 : 0.0);
+
+	// Кэшируем то, что нужно лёгкому per-frame пути — чтобы не читать свойства
+	// каждый кадр (это и был корень лагов).
+	self->set_meta("tw_effect",  p_text_effect);
+	self->set_meta("tw_trigger", p_trigger_distance);
+	self->set_meta("tw_typing",  p_typing_speed);
+	self->set_meta("tw_minprog", p_min_progress);
+	self->set_meta("tw_csize",   p_chunk_size);
+
+	// effect 0 — статичная стена. После постройки ей нечего делать каждый кадр:
+	// ветер/эффекты рисует шейдер сам. Полностью отключаем OnProcess — стена
+	// перестаёт стоить процессорное время вообще.
+	if (p_text_effect == 0) {
+		self->set_process(false);
+		TW_LOGI("static wall built, OnProcess disabled");
+	}
 }
 
 JENOVA_SCRIPT_END

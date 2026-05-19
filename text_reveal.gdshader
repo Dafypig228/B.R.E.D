@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, depth_draw_opaque, cull_disabled, blend_mix;
+render_mode unshaded, depth_draw_opaque, cull_back;
 
 uniform sampler2D albedo_tex : source_color, filter_linear;
 
@@ -38,20 +38,22 @@ uniform float scanline_count    = 100.0;
 uniform float hover_amp      = 0.0;     // амплитуда
 uniform float hover_speed    = 0.5;     // Hz
 
-// === WIND (непрерывный дрейф с порывами) ===
-// Тайлы НЕПРЕРЫВНО летят в направлении wind_dir на расстояние wind_distance,
-// потом fade-out и появляются у начала. Визуально — поток.
-uniform vec3  wind_dir       = vec3(1.0, 0.0, 0.0);  // куда дует
-uniform float wind_strength  = 0.0;                  // 0 = выкл; >0 = вкл
-uniform float wind_distance  = 2.0;                  // полная дистанция полёта тайла перед reset (метры)
-uniform float wind_speed     = 0.3;                  // циклов в секунду (как часто тайл проходит дистанцию)
-uniform float wind_gusts     : hint_range(0.0, 1.0) = 0.5;  // 0 = ровный поток, 1 = рваные порывы (модуляция скорости)
-uniform float wind_chaos     : hint_range(0.0, 1.0) = 1.0;  // 0 = все синхронно, 1 = полный desync
+// === WIND (текст уносит потоком) ===
+// При wind_strength > 0 текст срывается с сетки и летит потоком по wind_dir.
+// Тайлы широко разбросаны → сетки нет; непрерывно дрейфуют в одну сторону.
+// Рекайкл скрыт фейдом + разбросом. От камеры не зависит.
+uniform vec3  wind_dir        = vec3(1.0, 0.0, 0.0);  // куда дует ветер (world space)
+uniform float wind_strength   = 0.0;                  // 0 = выкл; ~1 = сильный ветер
+uniform float wind_speed      = 1.0;                  // скорость потока
+// Мировая позиция объекта. Сид ветра считаем как (тайл - объект), т.е. в
+// ЛОКАЛЬНЫХ координатах — иначе на движущемся объекте мировая позиция тайла
+// плывёт и per-tile рандом мерцает. Для статики = константа.
+uniform vec3  wall_origin     = vec3(0.0);
 
 // Per-instance reveal
 instance uniform float chunk_progress = 1.0;
 
-// Varying для wind-fade на границах цикла (vertex → fragment)
+// Wind recycle fade (vertex → fragment)
 varying float v_wind_fade;
 
 // HSV → RGB
@@ -72,43 +74,45 @@ void vertex() {
     vec3 instance_origin = MODEL_MATRIX[3].xyz;
     float chunk_phase = hash13(instance_origin) * 6.28318;
 
-    // === WIND — рандомизированный per-tile дрейф в МИРОВЫХ координатах ===
+    // === WIND — текст уносит потоком в МИРОВЫХ координатах ===
     vec3 wind_world_offset = vec3(0.0);
     v_wind_fade = 1.0;
     if (wind_strength > 0.0) {
-        // Per-tile рандомы — стабильные между кадрами, через hash от мировой позиции
-        float r_phase = hash13(instance_origin + vec3(11.7, 0.0, 23.1));
-        float r_speed = hash13(instance_origin + vec3(3.1,  7.3, 13.5));
-        float r_dist  = hash13(instance_origin + vec3(17.2, 5.5, 29.7));
-        float r_dirX  = hash13(instance_origin + vec3(2.0,  0.0, 0.0)) - 0.5;
-        float r_dirY  = hash13(instance_origin + vec3(0.0,  2.0, 0.0)) - 0.5;
-        float r_dirZ  = hash13(instance_origin + vec3(0.0,  0.0, 2.0)) - 0.5;
-        float r_curve = hash13(instance_origin + vec3(31.1, 41.3, 47.7));
+        vec3 wdir = normalize(wind_dir);
 
-        // Скорость per-tile: chaos=0 → все одинаково; chaos=1 → разброс 0.3..1.7x
-        float speed_var = mix(1.0, 0.3 + r_speed * 1.4, wind_chaos);
+        // per-tile сид. instance_origin = MODEL_MATRIX[3] — мировой центр тайла
+        // (у MultiMesh MODEL_MATRIX поинстансный, как в grass-шейдерах).
+        // Минус позиция объекта → ЛОКАЛЬНЫЙ сид, не плывёт при движении объекта.
+        vec3 seed = instance_origin - wall_origin;
+        float r1 = hash13(seed + vec3( 1.3,  7.7,  3.1));
+        float r2 = hash13(seed + vec3(11.7, 23.1,  5.5));
+        float r3 = hash13(seed + vec3(41.2,  7.9, 33.6));
+        float r4 = hash13(seed + vec3(63.8, 51.4, 19.2));
+        float r5 = hash13(seed + vec3(91.3, 12.8, 67.9));
 
-        // Глобальный гаст модулирует всех (общие порывы)
-        float gust = 1.0 + wind_gusts * sin(TIME * wind_speed * 6.28318 * 0.27 + r_phase * 6.28) * 0.7;
-        gust = max(0.1, gust);
+        // Оси поперёк ветра
+        vec3 up_ref = (abs(wdir.y) > 0.9) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+        vec3 lat1 = normalize(cross(wdir, up_ref));
+        vec3 lat2 = normalize(cross(wdir, lat1));
 
-        float cycle = fract(TIME * wind_speed * gust * speed_var + r_phase);
+        // Масштабы большие — текст реально уносит, сетка тонет в разбросе
+        float spread = wind_strength * 8.0;    // ширина облака (метры)
+        float travel = wind_strength * 12.0;   // длина дрейфа (метры)
 
-        // Направление с per-tile jitter — каждый тайл летит в чуть свою сторону
-        vec3 jittered_dir = wind_dir + vec3(r_dirX, r_dirY, r_dirZ) * length(wind_dir) * wind_chaos * 0.8;
+        // Прогресс полёта: монотонный, у каждого тайла своя фаза и скорость
+        float spd = wind_speed * 0.12 * (0.6 + r2 * 0.8);
+        float flight = fract(TIME * spd + r1);
 
-        // Дистанция per-tile
-        float dist_var = mix(1.0, 0.3 + r_dist * 1.4, wind_chaos);
+        // Большой случайный разброс поперёк ветра — ГЛАВНОЕ, что убивает сетку
+        vec3 scatter = (lat1 * (r3 - 0.5) + lat2 * (r4 - 0.5)) * spread;
 
-        // Боковой синусоидальный изгиб — путь виляет, не строгая прямая
-        vec3 up_ref = (abs(wind_dir.y) > 0.9) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-        vec3 lateral = normalize(cross(wind_dir, up_ref));
-        float lateral_amt = sin(cycle * 6.28318 + r_curve * 6.28318) * wind_distance * 0.25 * wind_chaos;
+        // Полёт по ветру: случайный старт вдоль + дрейф (только вперёд)
+        float along = (r5 - 0.5) * spread + flight * travel;
 
-        wind_world_offset = jittered_dir * wind_distance * dist_var * cycle + lateral * lateral_amt;
+        wind_world_offset = wdir * along + scatter;
 
-        // Fade — тайл невидим в момент reset
-        v_wind_fade = smoothstep(0.0, 0.25, cycle) * (1.0 - smoothstep(0.75, 1.0, cycle));
+        // Фейд на стыке цикла — рекайкл не виден в случайном облаке
+        v_wind_fade = smoothstep(0.0, 0.12, flight) * (1.0 - smoothstep(0.88, 1.0, flight));
     }
 
     // Wave displacement (вертикальная синусоида — в локальном space)
@@ -183,10 +187,12 @@ void fragment() {
         col = mix(col, glow_color.rgb, 0.3) * (1.0 + glow_strength);
     }
 
-    // Wind cycle fade (скрывает snap при reset тайла)
+    // Wind recycle fade — прячет рекайкл тайла на стыке цикла
     alpha *= v_wind_fade;
 
     ALBEDO = col;
     ALPHA  = alpha;
-    if (ALPHA < alpha_cut) discard;
+    // Alpha-scissor: текст рисуется как НЕПРОЗРАЧНЫЙ (z-тест отсекает overdraw).
+    // Пиксель либо полностью виден, либо отброшен — без альфа-смешивания.
+    ALPHA_SCISSOR_THRESHOLD = alpha_cut;
 }

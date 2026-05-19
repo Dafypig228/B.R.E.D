@@ -1,6 +1,1 @@
-res://TextBlockGrid.cpp
-res://TextRenderManager.cpp
 res://node_3d.tscn
-res://text_render_manager.tscn
-res://TextWallGlobalSettings.cpp
-res://train.cpp

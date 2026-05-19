@@ -38,9 +38,11 @@ struct TextChunk {
 	std::vector<Transform3D> instances;
 };
 
-std::unordered_map<std::string, TextStyle> styles;
-std::unordered_map<std::string, TextChunk> chunks;
-bool collected = false;
+// static → внутренняя линковка: иначе конфликт с одноимёнными глобалами
+// других скриптов при линковке в единый Jenova-модуль (LNK2005).
+static std::unordered_map<std::string, TextStyle> styles;
+static std::unordered_map<std::string, TextChunk> chunks;
+static bool collected = false;
 
 JENOVA_CLASS_NAME("text_render_manager")
 JENOVA_SCRIPT_BEGIN

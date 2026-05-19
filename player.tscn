@@ -4,20 +4,18 @@
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_onrkg"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_4flbx"]
-
 [node name="Player" type="CharacterBody3D" unique_id=1190480487]
 
 [node name="Capsule" type="MeshInstance3D" parent="." unique_id=1486424539]
+visible = false
 mesh = SubResource("CapsuleMesh_sh265")
+
+[node name="Node3D" type="Node3D" parent="." unique_id=687665189]
+
+[node name="Head" type="MeshInstance3D" parent="Node3D" unique_id=795101944]
+
+[node name="Camera3D" type="Camera3D" parent="Node3D/Head" unique_id=336618494]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4639688, -0.5684351)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=279656731]
 shape = SubResource("CapsuleShape3D_onrkg")
-
-[node name="Head" type="MeshInstance3D" parent="." unique_id=795101944]
-
-[node name="Eyes" type="MeshInstance3D" parent="Head" unique_id=1897533834]
-transform = Transform3D(0.84, 0, 0, 0, 0.269, 0, 0, 0, 0.328, 0, 0.4639688, -0.5684351)
-mesh = SubResource("BoxMesh_4flbx")
-
-[node name="Camera3D" type="Camera3D" parent="Head/Eyes" unique_id=336618494]
